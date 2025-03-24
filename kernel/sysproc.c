@@ -69,15 +69,37 @@ sys_sleep(void)
   return 0;
 }
 
-
-#ifdef LAB_PGTBL
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
+  uint64 buf, abits, result_mask = 0;
+  int page_num;
+  struct proc *p = myproc();
+
+  //Lay dia chi cua cac tham so cua ham pgaccess()
+  argaddr(0, &buf);
+  argint(1, &page_num);
+  argaddr(2, &abits);
+
+  //Duyet qua cac trang va tim kiem cac trang da duoc truy cap
+  for (int i = 0; i < page_num; i++){
+    if (i >= 64) break; //Gioi han so trang duoc duyet la 64 (64-bit)
+
+    pte_t *pte = walk(p->pagetable, buf + i * PGSIZE, 0);
+
+    if (pte == 0|| (*pte & PTE_V) == 0) continue; //Trang khong hop le thi bo qua
+
+    if ((*pte & PTE_A) != 0){ //trang da duoc truy cap
+      result_mask |= (1UL << i); //dung UL (64-bit) de khong lo bi tran` khi dich bit
+      *pte &= ~PTE_A; //xoa bit PTE_A trong trang dang duoc duyet
+    }
+  }
+
+  //Copy ket qua ra user space
+  copyout(p->pagetable, abits, (char*)&result_mask, sizeof(result_mask));
+
   return 0;
 }
-#endif
 
 uint64
 sys_kill(void)
