@@ -70,10 +70,18 @@
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
-#ifdef LAB_PGTBL
+
+#ifndef LAB_PGTBL
+#define LAB_PGTBL
+#endif
+
+// Các định nghĩa macro cần thiết cho cả assembler và C.
 #define USYSCALL (TRAPFRAME - PGSIZE)
 
+#ifndef __ASSEMBLER__
+#ifdef LAB_PGTBL
 struct usyscall {
   int pid;  // Process ID
 };
-#endif
+#endif // LAB_PGTBL
+#endif // __ASSEMBLER__

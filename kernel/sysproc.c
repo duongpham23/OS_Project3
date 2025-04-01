@@ -18,7 +18,8 @@ sys_exit(void)
 uint64
 sys_getpid(void)
 {
-  return myproc()->pid;
+  struct proc *p = myproc();
+  return p->syscall_data->pid; // Truy xuất từ shared memory
 }
 
 uint64

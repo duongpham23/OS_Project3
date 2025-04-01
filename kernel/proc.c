@@ -132,6 +132,16 @@ found:
     return 0;
   }
 
+   // Cấp phát một trang bộ nhớ cho vùng USYSCALL
+   p->syscall_data = (struct usyscall *) kalloc();
+   if(p->syscall_data == 0){
+     freeproc(p);
+     release(&p->lock);
+     return 0;
+   }
+   memset(p->syscall_data, 0, PGSIZE);
+   p->syscall_data->pid = p->pid;
+
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -189,6 +199,7 @@ proc_pagetable(struct proc *p)
   // to/from user space, so not PTE_U.
   if(mappages(pagetable, TRAMPOLINE, PGSIZE,
               (uint64)trampoline, PTE_R | PTE_X) < 0){
+    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
     uvmfree(pagetable, 0);
     return 0;
   }
@@ -202,6 +213,14 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
+  // Map usyscall page vào user space
+  if(mappages(pagetable, USYSCALL, PGSIZE,
+              (uint64)(p->syscall_data), PTE_R | PTE_U) < 0){
+    uvmunmap(pagetable, USYSCALL, 1, 0);
+    uvmfree(pagetable, 0);
+  return 0;
+}
+
   return pagetable;
 }
 
@@ -212,6 +231,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  uvmunmap(pagetable, USYSCALL, 1, 0);
   uvmfree(pagetable, sz);
 }
 
